@@ -275,6 +275,8 @@ resource "kubectl_manifest" "karpenter_default_provisioner" {
         resources:
           cpu: 1000
       ttlSecondsAfterEmpty: 300
+      consolidation:
+        enabled: false
       providerRef:
         name: default
       ttlSecondsUntilExpired: 86400 
