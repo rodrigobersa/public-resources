@@ -55,8 +55,7 @@ data "aws_ecrpublic_authorization_token" "token" {
 data "aws_availability_zones" "available" {}
 
 locals {
-  name = "kubecon2023-demo"
-  #name      = basename(path.cwd)
+  name      = basename(path.cwd)
   region    = "us-west-2"
   partition = "aws"
 
@@ -162,14 +161,19 @@ module "eks" {
 
 module "eks_blueprints_addons" {
   source  = "aws-ia/eks-blueprints-addons/aws"
-  version = "~> 1.0"
+  version = "~> 1.12"
 
   cluster_name      = module.eks.cluster_name
   cluster_endpoint  = module.eks.cluster_endpoint
   cluster_version   = module.eks.cluster_version
   oidc_provider_arn = module.eks.oidc_provider_arn
 
-  # We want to wait for the Fargate profiles to be deployed first
+  enable_karpenter = true
+  karpenter = {
+    repository_username = data.aws_ecrpublic_authorization_token.token.user_name
+    repository_password = data.aws_ecrpublic_authorization_token.token.password
+  }
+  
   create_delay_dependencies = [for prof in module.eks.fargate_profiles : prof.fargate_profile_arn]
 
   enable_aws_load_balancer_controller = true
@@ -188,12 +192,6 @@ module "eks_blueprints_addons" {
         value = "false"
       }
     ]
-  }
-
-  enable_karpenter = true
-  karpenter = {
-    repository_username = data.aws_ecrpublic_authorization_token.token.user_name
-    repository_password = data.aws_ecrpublic_authorization_token.token.password
   }
 
   helm_releases = {
@@ -241,181 +239,227 @@ module "eks_blueprints_addons" {
 ################################################################################
 # Karpenter
 ################################################################################
-
-
-resource "kubectl_manifest" "karpenter_default_provisioner" {
-  yaml_body = <<-YAML
-    apiVersion: karpenter.sh/v1alpha5
-    kind: Provisioner
-    metadata:
-      name: default
+resource "kubectl_manifest" "nodepool_default" {
+  yaml_body = <<YAML
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: default
+spec:
+  disruption:
+    consolidateAfter: 5m0s
+    consolidationPolicy: WhenEmpty
+    expireAfter: 24h0m0s
+  limits:
+    cpu: 1k
+  template:
+    metadata: {}
     spec:
-      requirements:
-        - key: "karpenter.k8s.aws/instance-category"
-          operator: In
-          values: ["t"]
-        - key: "karpenter.k8s.aws/instance-cpu"
-          operator: In
-          values: ["4", "8"]
-        - key: "karpenter.k8s.aws/instance-hypervisor"
-          operator: In
-          values: ["nitro"]
-        - key: "topology.kubernetes.io/zone"
-          operator: In
-          values: ${jsonencode(local.azs)}
-        - key: "kubernetes.io/arch"
-          operator: In
-          values: ["amd64"]
-        - key: "karpenter.sh/capacity-type"
-          operator: In
-          values: ["on-demand"]
-      kubeletConfiguration:
-        containerRuntime: containerd
+      kubelet:
         maxPods: 110
-      limits:
-        resources:
-          cpu: 1000
-      ttlSecondsAfterEmpty: 300
-      consolidation:
-        enabled: false
-      providerRef:
+      nodeClassRef:
         name: default
-      ttlSecondsUntilExpired: 86400 
-  YAML
+      requirements:
+      - key: karpenter.k8s.aws/instance-category
+        operator: In
+        values:
+        - t
+      - key: karpenter.k8s.aws/instance-cpu
+        operator: In
+        values:
+        - "4"
+        - "8"
+      - key: karpenter.k8s.aws/instance-hypervisor
+        operator: In
+        values:
+        - nitro
+      - key: topology.kubernetes.io/zone
+        operator: In
+        values: ${jsonencode(local.azs)}
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - on-demand
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+YAML
 
   depends_on = [
-    module.eks_blueprints_addons
+    module.eks_blueprints_addons,
+    kubectl_manifest.ec2nodeclass_default
   ]
 }
 
-resource "kubectl_manifest" "karpenter_provisioner" {
-  yaml_body = <<-YAML
-    apiVersion: karpenter.sh/v1alpha5
-    kind: Provisioner
+resource "kubectl_manifest" "nodepool_cpu" {
+  yaml_body = <<YAML
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: cost-optimization
+spec:
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    expireAfter: 24h0m0s
+  limits:
+    cpu: 1k
+  template:
     metadata:
-      name: cost-optimization
-    spec:
       labels:
         kubecon-booth: cost-optimization
-      requirements:
-        - key: "karpenter.k8s.aws/instance-category"
-          operator: In
-          values: ["c", "m"]
-        - key: "karpenter.k8s.aws/instance-cpu"
-          operator: In
-          values: ["8", "16", "32"]
-        - key: "karpenter.k8s.aws/instance-hypervisor"
-          operator: In
-          values: ["nitro"]
-        - key: "topology.kubernetes.io/zone"
-          operator: In
-          values: ${jsonencode(local.azs)}
-        - key: "kubernetes.io/arch"
-          operator: In
-          values: ["amd64"]
-        - key: "karpenter.sh/capacity-type"
-          operator: In
-          values: ["on-demand"]
-      kubeletConfiguration:
-        containerRuntime: containerd
+    spec:
+      kubelet:
         maxPods: 110
-      limits:
-        resources:
-          cpu: 1000
-      consolidation:
-        enabled: true
-      providerRef:
+      nodeClassRef:
         name: default
-      ttlSecondsUntilExpired: 86400 
+      requirements:
+      - key: karpenter.k8s.aws/instance-category
+        operator: In
+        values:
+        - c
+        - m
+      - key: karpenter.k8s.aws/instance-cpu
+        operator: In
+        values:
+        - "8"
+        - "16"
+        - "32"
+      - key: karpenter.k8s.aws/instance-hypervisor
+        operator: In
+        values:
+        - nitro
+      - key: topology.kubernetes.io/zone
+        operator: In
+        values: ${jsonencode(local.azs)}
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - on-demand
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
   YAML
 
   depends_on = [
-    module.eks_blueprints_addons
+    module.eks_blueprints_addons,
+    kubectl_manifest.ec2nodeclass_default
   ]
 }
 
-resource "kubectl_manifest" "karpenter_provisioner_gpu" {
-  yaml_body = <<-YAML
-    apiVersion: karpenter.sh/v1alpha5
-    kind: Provisioner
+resource "kubectl_manifest" "nodepool_gpu" {
+  yaml_body = <<YAML
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
+metadata:
+  name: gpu
+spec:
+  disruption:
+    consolidationPolicy: WhenUnderutilized
+    expireAfter: 1h0m0s
+  limits:
+    cpu: 1k
+    memory: 1000Gi
+    nvidia.com/gpu: "8"
+  template:
     metadata:
-      name: gpu
-    spec:
       labels:
         kubecon-booth: gpu
-      requirements:
-        - key: karpenter.sh/capacity-type
-          operator: In
-          values: ["on-demand"]
-        - key: karpenter.k8s.aws/instance-category
-          operator: In
-          values: ["g", "p"]
-        - key: "topology.kubernetes.io/zone"
-          operator: In
-          values: ["us-west-2a", "us-west-2b"]
-      taints: # only accept gpu pods
-        - key: nvidia.com/gpu
-          value: "true"
-          effect: NoSchedule
-      providerRef:
+    spec:
+      nodeClassRef:
         name: gpu
-      limits:
-        resources:
-          cpu: 1000
-          memory: 1000Gi
-          nvidia.com/gpu: 8
-      consolidation:
-        enabled: true
-      ttlSecondsUntilExpired: 86400
+      requirements:
+      - key: karpenter.sh/capacity-type
+        operator: In
+        values:
+        - on-demand
+      - key: karpenter.k8s.aws/instance-category
+        operator: In
+        values:
+        - g
+        - p
+      - key: topology.kubernetes.io/zone
+        operator: In
+        values:
+        - us-west-2a
+        - us-west-2b
+      - key: kubernetes.io/os
+        operator: In
+        values:
+        - linux
+      - key: kubernetes.io/arch
+        operator: In
+        values:
+        - amd64
+      taints:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        value: "true"
   YAML
+
+  depends_on = [
+    module.eks_blueprints_addons,
+    kubectl_manifest.ec2nodeclass_gpu
+  ]
+}
+
+resource "kubectl_manifest" "ec2nodeclass_default" {
+  yaml_body = <<YAML
+apiVersion: karpenter.k8s.aws/v1beta1
+kind: EC2NodeClass
+metadata:
+  name: default
+spec:
+  amiFamily: AL2
+  role: ${split("/", module.eks_blueprints_addons.karpenter.node_iam_role_arn)[1]}
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: ${module.eks.cluster_name}
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: ${module.eks.cluster_name}
+  tags:
+    karpenter.sh/discovery: ${module.eks.cluster_name}
+YAML
 
   depends_on = [
     module.eks_blueprints_addons
   ]
 }
 
-resource "kubectl_manifest" "karpenter_node_template" {
-  yaml_body = <<-YAML
-    apiVersion: karpenter.k8s.aws/v1alpha1
-    kind: AWSNodeTemplate
-    metadata:
-      name: default
-    spec:
-      subnetSelector:
-        karpenter.sh/discovery: ${module.eks.cluster_name}
-      securityGroupSelector:
-        karpenter.sh/discovery: ${module.eks.cluster_name}
-      instanceProfile: ${module.eks_blueprints_addons.karpenter.node_instance_profile_name}
-      tags:
-        karpenter.sh/discovery: ${module.eks.cluster_name}
-  YAML
-
-  depends_on = [
-    module.eks_blueprints_addons
-  ]
-}
-
-resource "kubectl_manifest" "karpenter_node_template_gpu" {
-  yaml_body = <<-YAML
-    apiVersion: karpenter.k8s.aws/v1alpha1
-    kind: AWSNodeTemplate
-    metadata:
-      name: gpu 
-    spec:
-      blockDeviceMappings:
-        - deviceName: /dev/xvda
-          ebs:
-            volumeSize: 100Gi
-            volumeType: gp3
-            encrypted: true
-      subnetSelector:
-        karpenter.sh/discovery: ${module.eks.cluster_name}
-      securityGroupSelector:
-        karpenter.sh/discovery: ${module.eks.cluster_name}
-      instanceProfile: ${module.eks_blueprints_addons.karpenter.node_instance_profile_name}
-      tags:
-        karpenter.sh/discovery: ${module.eks.cluster_name}
-  YAML
+resource "kubectl_manifest" "ec2nodeclass_gpu" {
+  yaml_body = <<YAML
+apiVersion: karpenter.k8s.aws/v1beta1
+kind: EC2NodeClass
+metadata:
+  name: gpu
+spec:
+  amiFamily: AL2
+  blockDeviceMappings:
+  - deviceName: /dev/xvda
+    ebs:
+      encrypted: true
+      volumeSize: 100Gi
+      volumeType: gp3
+  role: ${split("/", module.eks_blueprints_addons.karpenter.node_iam_role_arn)[1]}
+  securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: ${module.eks.cluster_name}
+  subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: ${module.eks.cluster_name}
+  tags:
+    karpenter.sh/discovery: ${module.eks.cluster_name}
+YAML
 
   depends_on = [
     module.eks_blueprints_addons
