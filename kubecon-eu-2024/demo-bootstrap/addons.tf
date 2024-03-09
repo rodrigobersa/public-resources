@@ -57,6 +57,7 @@ module "eks_blueprints_addons" {
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
     version             = "v0.35"
+
   }
   bottlerocket_shadow = {
     name = "brupop-crd"

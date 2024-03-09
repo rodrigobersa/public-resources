@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gpu 
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: gpu
+  template:
+    metadata:
+      labels:
+        app: gpu
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: gpu
+          image: "mirantis/gpu-example:cuda-10.2"
+          command: ["/bin/sh"]  
+          args: ["-c", "while true; do echo hello; sleep 10;done"]
+          resources:
+            limits:
+              nvidia.com/gpu: "1"

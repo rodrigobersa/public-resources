@@ -28,6 +28,8 @@ spec:
           volumeMounts:
           - mountPath: /host-etc
             name: host-etc
+          command: ["sleep"] 
+          args: ["infinity"] 
       volumes:
         - name: host-etc
           hostPath:

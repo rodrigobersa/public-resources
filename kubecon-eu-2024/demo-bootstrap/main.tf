@@ -6,7 +6,7 @@ data "aws_availability_zones" "available" {}
 data "aws_caller_identity" "current" {}
 
 locals {
-  name   = "karpenter-sc"
+  name   = "kubecon-eu-2024"
   region = "us-west-2"
   tags = {
     Sample     = local.name

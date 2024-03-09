@@ -6,7 +6,7 @@ module "eks" {
   version = "~> 20.5"
 
   cluster_name                   = local.name
-  cluster_version                = "1.29"
+  cluster_version                = "1.28"
   cluster_endpoint_public_access = true
 
   cluster_enabled_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
@@ -28,6 +28,12 @@ module "eks" {
   }
 
   enable_cluster_creator_admin_permissions = true
+  access_entries = {
+    karpenter = {
+      principal_arn     = module.eks_blueprints_addons.karpenter.node_iam_role_arn
+      type = "EC2_LINUX"
+    }
+  }
 
   eks_managed_node_group_defaults = {
     ami_type       = "BOTTLEROCKET_x86_64"
