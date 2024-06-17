@@ -5,8 +5,18 @@ data "aws_availability_zones" "available" {}
 
 data "aws_caller_identity" "current" {}
 
+data "aws_ami" "eks_bottlerocket" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["bottlerocket-aws-k8s-1.28-x86_64-v1.15*"]
+  }
+}
+
 locals {
-  name   = "kubecon-eu-2024"
+  name   = basename(path.cwd)
   region = "us-west-2"
   tags = {
     Sample     = local.name

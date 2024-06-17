@@ -1,0 +1,28 @@
+amiFamily: Bottlerocket
+blockDeviceMappings:
+  - deviceName: /dev/xvda
+    ebs:
+      deleteOnTermination: true
+      encrypted: true
+      kmsKeyID: 74c865ef-53fc-4142-b9fb-2b178cc83f79
+      volumeSize: 4Gi
+  - deviceName: /dev/xvdb
+    ebs:
+      deleteOnTermination: true
+      encrypted: true
+      kmsKeyID: 74c865ef-53fc-4142-b9fb-2b178cc83f79
+      volumeSize: 20Gi
+metadataOptions:
+  httpEndpoint: enabled
+  httpProtocolIPv6: disabled
+  httpPutResponseHopLimit: 2
+  httpTokens: required
+role: karpenter-demo-bootstrap-20240403033222796200000008
+securityGroupSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: demo-bootstrap
+subnetSelectorTerms:
+  - tags:
+      karpenter.sh/discovery: demo-bootstrap
+tags:
+  karpenter.sh/discovery: demo-bootstrap

@@ -66,7 +66,7 @@ module "eks_blueprints_addons" {
   bottlerocket_update_operator = {
     set = [{
       name  = "scheduler_cron_expression"
-      value = "0 * * * * * *" # Default Unix Cron syntax, set to check every hour. Example "0 0 23 * * Sat *" Perform update checks every Saturday at 23H / 11PM
+      value = "* * * * * * *" # Default Unix Cron syntax, set to check every hour. Example "0 0 23 * * Sat *" Perform update checks every Saturday at 23H / 11PM
       },
       {
         name  = "placement.agent.tolerations[0].key"
