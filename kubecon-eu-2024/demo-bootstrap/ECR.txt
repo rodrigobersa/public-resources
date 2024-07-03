@@ -1,0 +1,21 @@
+{
+    "repositoryCreationPolicyText": {
+        "rules": [
+            {
+                "selectors": [
+                    {
+                        "prefix": ""
+                    }
+                ],
+                "repositories": [
+                    {
+                        "imageTagMutability": "MUTABLE",
+                        "encryptionConfiguration": {
+                            "encryptionType": "AES256"
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}
