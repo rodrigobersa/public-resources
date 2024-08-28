@@ -20,3 +20,7 @@ spec:
           resources:
             requests:
               cpu: "1"
+      # tolerations:
+      # - effect: NoSchedule
+      #   key: amd64
+      #   operator: Exists

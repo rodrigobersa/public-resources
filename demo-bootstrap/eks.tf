@@ -6,7 +6,7 @@ module "eks" {
   version = "~> 20.5"
 
   cluster_name                   = local.name
-  cluster_version                = "1.28"
+  cluster_version                = "1.29"
   cluster_endpoint_public_access = true
 
   cluster_enabled_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
@@ -24,14 +24,27 @@ module "eks" {
     vpc-cni = {
       most_recent    = true
       before_compute = true
+      configuration_values = jsonencode({
+        env = {
+          # ENABLE_PREFIX_DELEGATION = "true"
+          # WARM_PREFIX_TARGET       = "1"
+          # ENI_CONFIG_LABEL_DEF    = "topology.kubernetes.io/zone"
+          # AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG = "true"
+          ENABLE_SUBNET_DISCOVERY = "true"
+        }
+      })
     }
+    eks-pod-identity-agent = {
+      most_recent = true
+    }
+
   }
 
   enable_cluster_creator_admin_permissions = true
   access_entries = {
     karpenter = {
-      principal_arn     = module.eks_blueprints_addons.karpenter.node_iam_role_arn
-      type = "EC2_LINUX"
+      principal_arn = module.eks_blueprints_addons.karpenter.node_iam_role_arn
+      type          = "EC2_LINUX"
     }
   }
 
@@ -45,6 +58,7 @@ module "eks" {
   eks_managed_node_groups = {
     bottlerocket = {
       platform = "bottlerocket"
+      subnet_ids = slice(module.vpc.private_subnets, 0, 3)
 
       min_size     = 1
       max_size     = 5
@@ -102,63 +116,63 @@ module "eks" {
           EOT
     }
 
-    application = {
-      platform = "bottlerocket"
+    # application = {
+    #   platform = "bottlerocket"
 
-      # The following specifies a custom ami_id, this can be provided by a data-source. Remove/comment to use the latest Bottlerocket AMI available.
-      ami_id = data.aws_ami.eks_bottlerocket.image_id
+    #   # The following specifies a custom ami_id, this can be provided by a data-source. Remove/comment to use the latest Bottlerocket AMI available.
+    #   ami_id = data.aws_ami.eks_bottlerocket.image_id
 
-      min_size     = 0
-      max_size     = 3
-      desired_size = 0
+    #   min_size     = 0
+    #   max_size     = 1
+    #   desired_size = 0
 
-      ebs_optimized     = true
-      enable_monitoring = true
-      block_device_mappings = {
-        xvda = {
-          device_name = "/dev/xvda"
-          ebs = {
-            encrypted             = true
-            kms_key_id            = module.ebs_kms_key.key_arn
-            delete_on_termination = true
-          }
-        }
-        xvdb = {
-          device_name = "/dev/xvdb"
-          ebs = {
-            encrypted             = true
-            kms_key_id            = module.ebs_kms_key.key_arn
-            delete_on_termination = true
-          }
-        }
-      }
-      # The following line MUST be true when using a custom ami_id
-      use_custom_launch_template = true
+    #   ebs_optimized     = true
+    #   enable_monitoring = true
+    #   block_device_mappings = {
+    #     xvda = {
+    #       device_name = "/dev/xvda"
+    #       ebs = {
+    #         encrypted             = true
+    #         kms_key_id            = module.ebs_kms_key.key_arn
+    #         delete_on_termination = true
+    #       }
+    #     }
+    #     xvdb = {
+    #       device_name = "/dev/xvdb"
+    #       ebs = {
+    #         encrypted             = true
+    #         kms_key_id            = module.ebs_kms_key.key_arn
+    #         delete_on_termination = true
+    #       }
+    #     }
+    #   }
+    #   # The following line MUST be true when using a custom ami_id
+    #   use_custom_launch_template = true
 
-      # The next line MUST be uncomment when using a custom_launch_template is set to true
-      enable_bootstrap_user_data = true
+    #   # The next line MUST be uncomment when using a custom_launch_template is set to true
+    #   enable_bootstrap_user_data = true
 
-      # The following block customize your Bottlerocket user-data, you can comment if you don't need any customizations or add more parameters.
-      bootstrap_extra_args = <<-EOT
-            [settings.host-containers.admin]
-            enabled = false
+    #   # The following block customize your Bottlerocket user-data, you can comment if you don't need any customizations or add more parameters.
+    #   bootstrap_extra_args = <<-EOT
+    #         [settings.host-containers.admin]
+    #         enabled = false
 
-            [settings.host-containers.control]
-            enabled = true
+    #         [settings.host-containers.control]
+    #         enabled = true
 
-            [settings.kernel]
-            lockdown = "integrity"
+    #         [settings.kernel]
+    #         lockdown = "integrity"
 
-            [settings.kubernetes.node-labels]
-            "bottlerocket.aws/updater-interface-version" = "2.0.0"
+    #         [settings.kubernetes.node-labels]
+    #         "bottlerocket.aws/updater-interface-version" = "2.0.0"
 
-          EOT
-    }
+    #       EOT
+    # }
   }
-
-  tags = merge(local.tags, {
+  node_security_group_tags = {
     "karpenter.sh/discovery" = local.name
-  })
+  }
+  tags = local.tags
 }
 
 module "ebs_kms_key" {
@@ -182,15 +196,3 @@ module "ebs_kms_key" {
 
   tags = local.tags
 }
-
-# resource "aws_ec2_tag" "private_subnets" {
-
-# for_each = [ for id in module.vpc.private_subnets : id ]
-
-# resource_id = each.key
-
-# key = "kubernetes.io/role/internal-elb"
-
-# value = "1"
-
-# }
