@@ -1,11 +1,12 @@
-apiVersion: karpenter.sh/v1beta1
+apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
   name: gpu 
 spec:
   disruption:
-    consolidationPolicy: WhenUnderutilized
+    consolidationPolicy: WhenEmptyOrUnderutilized
     expireAfter: 24h0m0s
+    consolidateAfter: 1m
   limits:
     cpu: 1k
     memory: 1024Gi
@@ -15,6 +16,8 @@ spec:
       kubelet:
         maxPods: 110
       nodeClassRef:
+        group: karpenter.k8s.aws 
+        kind: EC2NodeClass
         name: gpu
       requirements:
       - key: karpenter.k8s.aws/instance-category

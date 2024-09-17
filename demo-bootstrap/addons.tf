@@ -67,14 +67,14 @@ module "eks_blueprints_addons" {
     }]
   }
 
-  enable_karpenter = true
-  karpenter = {
-    repository_username = data.aws_ecrpublic_authorization_token.token.user_name
-    repository_password = data.aws_ecrpublic_authorization_token.token.password
-    chart_version       = "0.37.2"
-    namespace           = "kube-system"
-    create_namespace    = false
-  }
+  # enable_karpenter = true
+  # karpenter = {
+  #   repository_username = data.aws_ecrpublic_authorization_token.token.user_name
+  #   repository_password = data.aws_ecrpublic_authorization_token.token.password
+  #   chart_version       = "1.0.1"
+  #   namespace           = "kube-system"
+  #   create_namespace    = false
+  # }
 
   bottlerocket_shadow = {
     name = "brupop-crd"
@@ -113,38 +113,4 @@ module "eks_blueprints_addons" {
   }
 
   tags = local.tags
-}
-
-################################################################################
-# Karpenter resources
-################################################################################
-resource "helm_release" "karpenter_resources" {
-  name  = "karpenter-resources"
-  chart = "./karpenter-resources"
-  set {
-    name  = "ec2nodeclass.securityGroupSelectorTerms.tags"
-    value = module.eks.cluster_name
-  }
-  set {
-    name  = "ec2nodeclass.subnetSelectorTerms.tags"
-    value = module.eks.cluster_name
-  }
-  set {
-    name  = "ec2nodeclass.tags"
-    value = module.eks.cluster_name
-  }
-  set {
-    name  = "ec2nodeclass.role"
-    value = split("/", module.eks_blueprints_addons.karpenter.node_iam_role_arn)[1]
-  }
-  set {
-    name  = "ec2nodeclass.blockDeviceMappings.ebs.kmsKeyID"
-    value = module.ebs_kms_key.key_id
-  }
-  set_list {
-    name  = "nodepool.zone"
-    value = local.azs
-  }
-
-  depends_on = [module.eks_blueprints_addons]
 }
