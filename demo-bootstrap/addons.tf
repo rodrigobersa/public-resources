@@ -66,6 +66,17 @@ module "eks_blueprints_addons" {
         value = "Exists"
     }]
   }
+  # enable_aws_for_fluentbit = true
+  # aws_for_fluentbit = {
+  #   set = [{
+  #     name  = "tolerations[0].key"
+  #     value = "CriticalAddonsOnly"
+  #     },
+  #     {
+  #       name  = "tolerations[0].operator"
+  #       value = "Exists"
+  #   }]
+  # }
 
   # enable_karpenter = true
   # karpenter = {
@@ -111,6 +122,5 @@ module "eks_blueprints_addons" {
       }
     ]
   }
-
   tags = local.tags
 }

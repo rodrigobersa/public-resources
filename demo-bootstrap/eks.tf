@@ -26,6 +26,7 @@ module "eks" {
       most_recent    = true
       before_compute = true
       configuration_values = jsonencode({
+        enableNetworkPolicy = "true",
         env = {
           # ENABLE_PREFIX_DELEGATION = "true"
           # WARM_PREFIX_TARGET       = "1"
@@ -36,6 +37,9 @@ module "eks" {
       })
     }
     eks-pod-identity-agent = {
+      most_recent = true
+    }
+    amazon-cloudwatch-observability = {
       most_recent = true
     }
 
