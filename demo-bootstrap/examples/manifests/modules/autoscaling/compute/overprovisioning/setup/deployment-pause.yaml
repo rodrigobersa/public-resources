@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pause-pods
+  namespace: other
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      run: pause-pods
+  template:
+    metadata:
+      labels:
+        run: pause-pods
+    spec:
+      priorityClassName: pause-pods
+      containers:
+        - name: reserve-resources
+          image: registry.k8s.io/pause
+          resources:
+            requests:
+              memory: "6.5Gi"

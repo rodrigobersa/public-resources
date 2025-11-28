@@ -1,0 +1,13 @@
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: ${GITOPS_REPO_URL_ARGOCD}
+    targetRevision: main
+
+applications:
+  - name: carts
+  - name: catalog
+  - name: checkout
+  - name: orders
+  - name: ui

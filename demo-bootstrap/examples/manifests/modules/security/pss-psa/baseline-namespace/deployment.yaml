@@ -1,0 +1,12 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pss
+spec:
+  template:
+    spec:
+      containers:
+        - name: pss
+          securityContext:
+            privileged: true
+            runAsUser: 0

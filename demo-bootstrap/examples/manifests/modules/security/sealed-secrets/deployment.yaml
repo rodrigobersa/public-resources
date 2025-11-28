@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog
+spec:
+  template:
+    spec:
+      containers:
+        - name: catalog
+          envFrom:
+            - configMapRef:
+                name: catalog
+          env:
+            - name: RETAIL_CATALOG_PERSISTENCE_USER
+              valueFrom:
+                secretKeyRef:
+                  name: catalog-sealed-db
+                  key: RETAIL_CATALOG_PERSISTENCE_USER
+            - name: RETAIL_CATALOG_PERSISTENCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: catalog-sealed-db
+                  key: RETAIL_CATALOG_PERSISTENCE_PASSWORD
