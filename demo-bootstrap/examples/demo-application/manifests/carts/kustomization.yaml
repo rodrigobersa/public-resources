@@ -9,3 +9,4 @@ resources:
   - service-db.yaml
   - deployment.yaml
   - deployment-db.yaml
+  - networkPolicy.yaml

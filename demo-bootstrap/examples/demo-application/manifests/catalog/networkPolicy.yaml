@@ -1,35 +1,35 @@
-apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
 metadata:
-  name: catalog
+  namespace: catalog
+  name: allow-catalog-ingress-webservice
 spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/name: catalog
-  policyTypes:
-  - Ingress
-  - Egress
+      app.kubernetes.io/component: service
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: ui
-    ports:
-    - protocol: TCP
-      port: 8080
-  egress:
-  - to:
-    - podSelector:
-        matchLabels:
-          app.kubernetes.io/component: mysql
-      namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: catalog
-    ports:
-    - protocol: TCP
-      port: 3306
-  - to:
-    - namespaceSelector: {}
-    ports:
-    - protocol: UDP
-      port: 53
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ui
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ui
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: catalog
+  name: allow-catalog-ingress-db
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: catalog
+      app.kubernetes.io/component: mysql
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: catalog
+              app.kubernetes.io/component: service

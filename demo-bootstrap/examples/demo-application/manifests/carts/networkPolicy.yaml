@@ -1,40 +1,35 @@
-apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
 metadata:
-  name: carts
+  namespace: carts
+  name: allow-carts-ingress-webservice
 spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/name: carts
-  policyTypes:
-  - Ingress
-  - Egress
+      app.kubernetes.io/component: service
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: ui
-    ports:
-    - protocol: TCP
-      port: 8080
-  egress:
-  - to:
-    - podSelector:
-        matchLabels:
-          app.kubernetes.io/component: dynamodb
-      namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: carts
-    ports:
-    - protocol: TCP
-      port: 8000
-  - to:
-    - namespaceSelector: {}
-    ports:
-    - protocol: TCP
-      port: 443
-  - to:
-    - namespaceSelector: {}
-    ports:
-    - protocol: UDP
-      port: 53
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ui
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ui
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: carts
+  name: allow-carts-ingress-db
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: carts
+      app.kubernetes.io/component: dynamodb
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: carts
+              app.kubernetes.io/component: service

@@ -1,45 +1,35 @@
-apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
 metadata:
-  name: checkout
+  namespace: checkout
+  name: allow-checkout-ingress-webservice
 spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/name: checkout
-  policyTypes:
-  - Ingress
-  - Egress
+      app.kubernetes.io/component: service
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: ui
-    ports:
-    - protocol: TCP
-      port: 8080
-  egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: orders
-      podSelector:
-        matchLabels:
-          app.kubernetes.io/name: orders
-    ports:
-    - protocol: TCP
-      port: 8080
-  - to:
-    - podSelector:
-        matchLabels:
-          app.kubernetes.io/component: redis
-      namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: checkout
-    ports:
-    - protocol: TCP
-      port: 6379
-  - to:
-    - namespaceSelector: {}
-    ports:
-    - protocol: UDP
-      port: 53
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ui
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ui
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: checkout
+  name: allow-checkout-ingress-redis
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: checkout
+      app.kubernetes.io/component: redis
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: checkout
+              app.kubernetes.io/component: service

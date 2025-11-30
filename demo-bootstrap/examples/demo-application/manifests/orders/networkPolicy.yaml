@@ -1,42 +1,35 @@
-apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
 metadata:
-  name: orders
+  namespace: orders
+  name: allow-orders-ingress-webservice
 spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/name: orders
-  policyTypes:
-  - Ingress
-  - Egress
+      app.kubernetes.io/component: service
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: ui
-    ports:
-    - protocol: TCP
-      port: 8080
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: checkout
-    ports:
-    - protocol: TCP
-      port: 8080
-  egress:
-  - to:
-    - podSelector:
-        matchLabels:
-          app.kubernetes.io/component: postgresql
-      namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: orders
-    ports:
-    - protocol: TCP
-      port: 5432
-  - to:
-    - namespaceSelector: {}
-    ports:
-    - protocol: UDP
-      port: 53
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ui
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: ui
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  namespace: orders
+  name: allow-orders-ingress-db
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: orders
+      app.kubernetes.io/component: postgres
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: orders
+              app.kubernetes.io/component: service

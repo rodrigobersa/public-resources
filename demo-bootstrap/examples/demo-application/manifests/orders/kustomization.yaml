@@ -10,3 +10,4 @@ resources:
   - service-postgresql.yaml
   - deployment.yaml
   - deployment-postgresql.yaml
+  - networkPolicy.yaml

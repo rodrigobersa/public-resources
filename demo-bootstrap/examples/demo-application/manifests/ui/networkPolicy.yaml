@@ -1,59 +1,20 @@
-apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
 metadata:
-  name: ui
+  namespace: ui
+  name: allow-ui-egress
 spec:
   podSelector:
     matchLabels:
       app.kubernetes.io/name: ui
   policyTypes:
-  - Ingress
-  - Egress
-  ingress:
-  - {}
+    - Egress
   egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: catalog
-      podSelector:
-        matchLabels:
-          app.kubernetes.io/name: catalog
-    ports:
-    - protocol: TCP
-      port: 8080
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: carts
-      podSelector:
-        matchLabels:
-          app.kubernetes.io/name: carts
-    ports:
-    - protocol: TCP
-      port: 8080
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: orders
-      podSelector:
-        matchLabels:
-          app.kubernetes.io/name: orders
-    ports:
-    - protocol: TCP
-      port: 8080
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: checkout
-      podSelector:
-        matchLabels:
-          app.kubernetes.io/name: checkout
-    ports:
-    - protocol: TCP
-      port: 8080
-  - to:
-    - namespaceSelector: {}
-    ports:
-    - protocol: UDP
-      port: 53
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/component: service
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system

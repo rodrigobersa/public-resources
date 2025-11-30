@@ -10,3 +10,4 @@ resources:
   - service-mysql.yaml
   - deployment.yaml
   - statefulset-mysql.yaml
+  - networkPolicy.yaml
