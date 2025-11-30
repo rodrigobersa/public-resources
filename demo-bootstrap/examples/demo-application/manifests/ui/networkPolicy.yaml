@@ -16,30 +16,42 @@ spec:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: catalog
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: catalog
     ports:
     - protocol: TCP
-      port: 80
+      port: 8080
   - to:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: carts
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: carts
     ports:
     - protocol: TCP
-      port: 80
+      port: 8080
   - to:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: orders
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: orders
     ports:
     - protocol: TCP
-      port: 80
+      port: 8080
   - to:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: checkout
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: checkout
     ports:
     - protocol: TCP
-      port: 80
+      port: 8080
   - to:
     - namespaceSelector: {}
     ports:

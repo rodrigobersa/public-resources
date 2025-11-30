@@ -22,9 +22,17 @@ spec:
     - podSelector:
         matchLabels:
           app.kubernetes.io/component: dynamodb
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: carts
     ports:
     - protocol: TCP
       port: 8000
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
   - to:
     - namespaceSelector: {}
     ports:

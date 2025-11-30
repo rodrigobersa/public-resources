@@ -29,6 +29,9 @@ spec:
     - podSelector:
         matchLabels:
           app.kubernetes.io/component: postgresql
+      namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: orders
     ports:
     - protocol: TCP
       port: 5432
