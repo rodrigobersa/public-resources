@@ -1,0 +1,21 @@
+apiVersion: eks.amazonaws.com/v1
+kind: NodeClass
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: eks
+  name: {{ .Values.namespace.name }}-nodeclass
+spec:
+  ephemeralStorage:
+    iops: 3000
+    size: 80Gi
+    throughput: 125
+  networkPolicy: DefaultDeny
+  networkPolicyEventLogs: Enabled
+  role: AmazonEKSAutoNodeRole
+  securityGroupSelectorTerms:
+  - id: sg-075eb361c24b2859d
+  snatPolicy: Random
+  subnetSelectorTerms:
+  - id: subnet-00df845bbe6fed63b
+  - id: subnet-00aac666deda0ffdb
+  - id: subnet-02a3d643d1512443c

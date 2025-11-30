@@ -1,0 +1,4 @@
+apiVersion: v1
+name: isolated-namespace
+description: Helm chart to deploy an isolated Namespace with NetPol
+version: 0.0.1

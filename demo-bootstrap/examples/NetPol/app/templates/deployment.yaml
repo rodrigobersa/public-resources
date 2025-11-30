@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inflate
+  namespace: {{ .Values.namespace.name }}
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: inflate
+  template:
+    metadata:
+      labels:
+        app: inflate
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+        - name: inflate
+          image: public.ecr.aws/amazonlinux/amazonlinux:2023-minimal
+          args: ['sleep infinity']
+          command: ["/bin/bash", "-c"]
+          resources:
+            requests:
+              cpu: "1"
+      tolerations:
+        - key: amazon-vpc-cni/enable-network-policy
+          value: "Exists"
+          effect: NoSchedule

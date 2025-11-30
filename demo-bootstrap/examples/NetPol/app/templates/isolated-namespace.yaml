@@ -1,0 +1,5 @@
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: {{ .Values.namespace.name }}
+  name: {{ .Values.namespace.name }}
