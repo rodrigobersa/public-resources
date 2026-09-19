@@ -3,19 +3,22 @@
 ################################################################################
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 20.5"
+  version = "~> 21.0"
 
-  cluster_name                   = local.name
-  cluster_version                = var.cluster_version
-  cluster_endpoint_public_access = true
+  name                   = local.name
+  kubernetes_version     = var.cluster_version
+  endpoint_public_access = true
 
-  cluster_enabled_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+  enabled_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 
-  vpc_id = module.vpc.vpc_id
-  #subnet_ids = module.vpc.private_subnets
+  control_plane_scaling_config = {
+    tier = "standard"
+  }
+
+  vpc_id     = module.vpc.vpc_id
   subnet_ids = slice(module.vpc.private_subnets, 0, 3)
 
-  cluster_addons = {
+  addons = {
     coredns = {
       most_recent = true
     }
@@ -40,9 +43,56 @@ module "eks" {
       most_recent = true
     }
     amazon-cloudwatch-observability = {
+      most_recent                 = true
+      resolve_conflicts_on_create = "OVERWRITE"
+      pod_identity_association = [{
+        role_arn        = aws_iam_role.addon["amazon-cloudwatch-observability"].arn
+        service_account = "cloudwatch-agent"
+      }]
+    }
+    aws-network-flow-monitoring-agent = {
+      most_recent = true
+      pod_identity_association = [{
+        role_arn        = aws_iam_role.addon["aws-network-flow-monitoring-agent"].arn
+        service_account = "aws-network-flow-monitor-agent-service-account"
+      }]
+    }
+    eks-node-monitoring-agent = {
       most_recent = true
     }
-
+    aws-secrets-store-csi-driver-provider = {
+      most_recent = true
+    }
+    aws-efs-csi-driver = {
+      most_recent = true
+      pod_identity_association = [{
+        role_arn        = aws_iam_role.addon["aws-efs-csi-driver"].arn
+        service_account = "efs-csi-controller-sa"
+      }]
+    }
+    aws-fsx-csi-driver = {
+      most_recent = true
+      pod_identity_association = [{
+        role_arn        = aws_iam_role.addon["aws-fsx-csi-driver"].arn
+        service_account = "fsx-csi-controller-sa"
+      }]
+    }
+    aws-ebs-csi-driver = {
+      most_recent = true
+      pod_identity_association = [{
+        role_arn        = aws_iam_role.addon["aws-ebs-csi-driver"].arn
+        service_account = "ebs-csi-controller-sa"
+      }]
+    }
+    fluent-bit = {
+      most_recent = true
+    }
+    metrics-server = {
+      most_recent = true
+    }
+    cert-manager = {
+      most_recent = true
+    }
   }
 
   enable_cluster_creator_admin_permissions = true
@@ -53,21 +103,17 @@ module "eks" {
   #   }
   # }
 
-  eks_managed_node_group_defaults = {
-    ami_type       = "BOTTLEROCKET_x86_64"
-    instance_types = ["t3.large", "t3a.large"]
-
-    iam_role_attach_cni_policy = true
-  }
-
   eks_managed_node_groups = {
     bottlerocket = {
-      platform   = "bottlerocket"
-      subnet_ids = slice(module.vpc.private_subnets, 0, 3)
+      ami_type                   = "BOTTLEROCKET_x86_64"
+      instance_types             = ["m8i.large", "m8a.large"]
+      platform                   = "bottlerocket"
+      subnet_ids                 = slice(module.vpc.private_subnets, 0, 3)
+      iam_role_attach_cni_policy = true
 
       min_size     = 1
-      max_size     = 5
-      desired_size = 3
+      max_size     = 3
+      desired_size = 2
 
       ebs_optimized     = true
       enable_monitoring = true
