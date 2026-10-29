@@ -1,0 +1,54 @@
+# Demo: Block crypto mining by FQDN — no IP addresses needed
+#
+# Context (from AWS blog):
+#   ApplicationNetworkPolicy operates at OSI layer 7, enabling FQDN-based
+#   filtering. This is exclusive to EKS Auto Mode clusters.
+#
+#   "Instead of maintaining lists of IP addresses, you can simply use domain
+#    names (FQDNs). When IP addresses change behind the scenes, your policies
+#    continue to work without requiring updates."
+#
+# FQDN rules are ALLOW-only. The pattern is:
+#   1. A ClusterNetworkPolicy (Baseline tier) denies all egress by default
+#      → see baseline-deny.yaml
+#   2. This ANP explicitly allows only trusted domains
+#   → Any domain not listed (including crypto mining pools) is blocked
+#
+# Mining pools rotate IPs constantly — blocking by FQDN is far more durable
+# than maintaining IP blocklists.
+#
+apiVersion: networking.k8s.aws/v1alpha1
+kind: ApplicationNetworkPolicy
+metadata:
+  name: allowlist-egress-domains
+  namespace: app
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - ports:
+    - port: 443
+      protocol: TCP
+    to:
+    - domainNames:
+      # Legitimate destinations — only these are reachable
+      - "api.example.com"
+      - "cdn.amazonlinux.com"
+#      - "s3.us-east-1.amazonaws.com"       # S3
+      - "s3.us-west-2.amazonaws.com"       # S3
+      - "sts.amazonaws.com"       # STS
+      - "sts.us-west-2.amazonaws.com"       # STS
+      - "sts.us-east-1.amazonaws.com"       # STS
+      #
+      # The following crypto mining pools are intentionally NOT listed.
+      # Because FQDN rules are allow-only, omitting them = blocked,
+      # regardless of what IPs they resolve to today or tomorrow:
+      #
+      #   hub.miningpoolhub.com   ← blocked
+      #   pool.minexmr.com        ← blocked
+      #   xmr.pool.minergate.com  ← blocked
+      #   pool.supportxmr.com     ← blocked
+      #   *.nicehash.com          ← blocked
+      #   *.2miners.com           ← blocked
+      #   *.f2pool.com            ← blocked

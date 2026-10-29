@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: frontend
+  labels:
+    role: frontend
+    env: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: backend
+  labels:
+    role: backend
+    env: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: databases
+  labels:
+    role: database
+    env: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app 
+  labels:
+    role: frontend
+    env: development

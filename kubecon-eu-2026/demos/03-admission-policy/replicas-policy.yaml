@@ -1,0 +1,83 @@
+# Demo: MutatingAdmissionPolicy fixes what ValidatingAdmissionPolicy would deny
+#
+# Admission order: mutating admission runs BEFORE validating admission.
+# So the MutatingAdmissionPolicy bumps spec.replicas to 5 first, and the
+# ValidatingAdmissionPolicy then sees a compliant Deployment and allows it.
+#
+# Requires Kubernetes v1.36+ for admissionregistration.k8s.io/v1 MutatingAdmissionPolicy.
+---
+# Namespace in scope for both bindings
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-test
+  labels:
+    environment: test
+---
+# 1. Validation: deny Deployments with fewer than 5 replicas
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: "min-replicas-validate.example.com"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:   ["apps"]
+      apiVersions: ["v1"]
+      operations:  ["CREATE", "UPDATE"]
+      resources:   ["deployments"]
+  validations:
+  - expression: "object.spec.replicas >= 5"
+    message: "Deployments must have at least 5 replicas"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: "min-replicas-validate-binding.example.com"
+spec:
+  policyName: "min-replicas-validate.example.com"
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        environment: test
+---
+# 2. Mutation: raise replicas to 5 when below the minimum
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata:
+  name: "min-replicas-mutate.example.com"
+spec:
+  failurePolicy: Fail
+  reinvocationPolicy: Never
+  matchConstraints:
+    resourceRules:
+    - apiGroups:   ["apps"]
+      apiVersions: ["v1"]
+      operations:  ["CREATE", "UPDATE"]
+      resources:   ["deployments"]
+  # Only mutate when the Deployment is below the minimum
+  matchConditions:
+  - name: replicas-below-minimum
+    expression: "object.spec.replicas < 5"
+  mutations:
+  - patchType: "ApplyConfiguration"
+    applyConfiguration:
+      expression: >
+        Object{
+          spec: Object.spec{
+            replicas: 5
+          }
+        }
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: "min-replicas-mutate-binding.example.com"
+spec:
+  policyName: "min-replicas-mutate.example.com"
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        environment: test

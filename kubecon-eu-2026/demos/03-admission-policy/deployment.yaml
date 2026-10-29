@@ -1,0 +1,23 @@
+# Example Deployment requesting only 2 replicas.
+# Without the MutatingAdmissionPolicy, the ValidatingAdmissionPolicy denies it.
+# With it, the Deployment is admitted with replicas: 5.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: demo-test
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: public.ecr.aws/nginx/nginx:1.27
+        ports:
+        - containerPort: 80

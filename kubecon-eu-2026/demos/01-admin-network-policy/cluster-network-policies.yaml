@@ -1,0 +1,147 @@
+# Demo: ONE ClusterNetworkPolicy covering multiple namespaces
+#
+# Context (from AWS blog):
+#   Standard NetworkPolicies can only control traffic within individual
+#   namespaces. ClusterNetworkPolicy (Admin tier) is evaluated FIRST and
+#   cannot be overridden by namespace-level policies — giving platform/security
+#   teams a hard enforcement layer above what app teams can configure.
+#
+# The subject field uses label selectors, so a single policy covers every
+# namespace that matches — including ones created in the future.
+#
+# Evaluation order (lower priority number = evaluated first):
+#   10  → Deny internet egress from database namespaces (hard block)
+#   20  → Allow internet egress from all production namespaces
+#
+# ---------------------------------------------------------------
+# Policy 1 (Admin tier, priority 10):
+# Databases must never reach the internet.
+# Matches any namespace labelled role=database.
+# Because this is Admin tier, a developer cannot write a NetworkPolicy
+# in the databases namespace to bypass this rule.
+apiVersion: networking.k8s.aws/v1alpha1
+kind: ClusterNetworkPolicy
+metadata:
+  name: deny-internet
+spec:
+  tier: Baseline
+  priority: 30
+  subject:
+    namespaces:
+      matchLabels: {}
+  egress:
+  - name: deny-egress-internet
+    action: Deny
+    to:
+    - networks:
+      - 0.0.0.0/0
+  ingress:
+    - name: deny-ingress-internet
+      action: Deny
+      from:
+      - namespaces:
+          matchLabels: {} # Match all namespaces.
+---
+# Policy 2 (Admin tier, priority 20):
+# All frontend namespaces can reach the internet.
+# Adding a new namespace just requires the label role=frontend —
+# no new policy needed.
+#
+# This mirrors the blog's "Enforce centralized monitoring access" use case:
+# a single policy with subject.namespaces: {} (or a label selector) applies
+# cluster-wide without duplicating rules per namespace.
+apiVersion: networking.k8s.aws/v1alpha1
+kind: ClusterNetworkPolicy
+metadata:
+  name: allow-frontend-internet-egress
+spec:
+  tier: Baseline
+  priority: 20
+  subject:
+    namespaces:
+      matchLabels:
+        role: frontend
+  egress:
+  - name: allow-https-out
+    action: Accept
+    to:
+    - networks:
+      - 0.0.0.0/0
+    ports:
+    - portNumber:
+        protocol: TCP
+        port: 443
+    ports:
+    - portNumber:
+        protocol: TCP
+        port: 80
+---
+# Policy 3 (Admin tier, priority 20):
+# All production namespaces can communicate to each other.
+# Adding a new namespace just requires the label env=production —
+# no new policy needed.
+#
+# This mirrors the blog's "Enforce centralized monitoring access" use case:
+# a single policy with subject.namespaces: {} (or a label selector) applies
+# cluster-wide without duplicating rules per namespace.
+apiVersion: networking.k8s.aws/v1alpha1
+kind: ClusterNetworkPolicy
+metadata:
+  name: allow-production-ingress
+spec:
+  tier: Admin
+  priority: 10
+  subject:
+    namespaces:
+      matchLabels:
+        env: production
+  ingress:
+  - name: allow-production-env
+    action: Accept
+    from:
+    - namespaces:
+        matchLabels: 
+          env: production
+  egress:
+  - name: allow-production-env
+    action: Accept
+    to:
+    - namespaces:
+        matchLabels: 
+          env: production
+---
+# Policy 4 (Admin tier, priority 20):
+# All namespaces can resolve DNS.
+apiVersion: networking.k8s.aws/v1alpha1
+kind: ClusterNetworkPolicy
+metadata:
+  name: cluster-wide-allow-kube-system
+spec:
+  tier: Admin
+  priority: 10
+  subject:
+    namespaces: {}
+  ingress:
+    - action: Accept
+      name: allow-ns-ingress
+      from:
+      - namespaces:
+          matchLabels:
+            kubernetes.io/metadata.name: kube-system
+  egress:
+  - action: Accept
+    name: allow-kube-system-egress
+    to:
+    - namespaces:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+  - name: allow-dns-resolve
+    action: Accept
+    to:
+    - networks:
+      - 172.20.0.0/16
+    ports:
+    - portNumber:
+        protocol: UDP
+        port: 53
+
