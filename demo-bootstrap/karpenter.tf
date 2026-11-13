@@ -89,6 +89,8 @@ resource "helm_release" "karpenter" {
       clusterName: ${module.eks.cluster_name}
       clusterEndpoint: ${module.eks.cluster_endpoint}
       interruptionQueue: ${module.karpenter.queue_name}
+      featureGates:
+        CapacityBuffer: true
     EOT
   ]
 }

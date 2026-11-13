@@ -1,0 +1,13 @@
+apiVersion: autoscaling.x-k8s.io/v1beta1
+kind: CapacityBuffer
+metadata:
+  name: web-app-buffer
+  namespace: default
+spec:
+  provisioningStrategy: "buffer.x-k8s.io/active-capacity"
+  podTemplateRef:
+    name: web-buffer-template
+  replicas: 5
+  limits:
+    cpu: "20"
+    memory: "40Gi"

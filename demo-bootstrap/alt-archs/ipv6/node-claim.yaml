@@ -1,0 +1,143 @@
+apiVersion: karpenter.sh/v1
+kind: NodeClaim
+metadata:
+  annotations:
+    compatibility.karpenter.k8s.aws/cluster-name-tagged: "true"
+    compatibility.karpenter.k8s.aws/kubelet-drift-hash: "15379597991425564585"
+    karpenter.k8s.aws/ec2nodeclass-hash: "6639805571697012575"
+    karpenter.k8s.aws/ec2nodeclass-hash-version: v3
+    karpenter.k8s.aws/tagged: "true"
+    karpenter.sh/nodepool-hash: "6821555240594823858"
+    karpenter.sh/nodepool-hash-version: v3
+  finalizers:
+  - karpenter.sh/termination
+  generateName: default-
+  generation: 1
+  labels:
+    karpenter.k8s.aws/instance-category: c
+    karpenter.k8s.aws/instance-cpu: "16"
+    karpenter.k8s.aws/instance-cpu-manufacturer: amd
+    karpenter.k8s.aws/instance-ebs-bandwidth: "10000"
+    karpenter.k8s.aws/instance-encryption-in-transit-supported: "true"
+    karpenter.k8s.aws/instance-family: c6a
+    karpenter.k8s.aws/instance-generation: "6"
+    karpenter.k8s.aws/instance-hypervisor: nitro
+    karpenter.k8s.aws/instance-memory: "32768"
+    karpenter.k8s.aws/instance-network-bandwidth: "6250"
+    karpenter.k8s.aws/instance-size: 4xlarge
+    karpenter.sh/capacity-type: on-demand
+    karpenter.sh/nodepool: default
+    kubernetes.io/arch: amd64
+    kubernetes.io/os: linux
+    node.kubernetes.io/instance-type: c6a.4xlarge
+    topology.k8s.aws/zone-id: usw2-az2
+    topology.kubernetes.io/region: us-west-2
+    topology.kubernetes.io/zone: us-west-2a
+  name: manual-default
+  ownerReferences:
+  - apiVersion: karpenter.sh/v1
+    blockOwnerDeletion: true
+    kind: NodePool
+    name: default
+    uid: 825aacf3-711e-417f-bd81-06acfd571a03
+spec:
+  expireAfter: 720h
+  nodeClassRef:
+    group: karpenter.k8s.aws
+    kind: EC2NodeClass
+    name: default
+  requirements:
+  - key: karpenter.sh/nodepool
+    operator: In
+    values:
+    - default
+  - key: karpenter.sh/capacity-type
+    operator: In
+    values:
+    - on-demand
+  - key: kubernetes.io/arch
+    operator: In
+    values:
+    - amd64
+  - key: topology.kubernetes.io/zone
+    operator: In
+    values:
+    - us-west-2a
+    - us-west-2b
+    - us-west-2c
+  - key: karpenter.k8s.aws/instance-hypervisor
+    operator: In
+    values:
+    - nitro
+  - key: karpenter.k8s.aws/instance-cpu
+    operator: In
+    values:
+    - "16"
+    - "32"
+    - "8"
+  - key: kubernetes.io/os
+    operator: In
+    values:
+    - linux
+  - key: karpenter.k8s.aws/instance-category
+    operator: In
+    values:
+    - c
+    - m
+  - key: node.kubernetes.io/instance-type
+    operator: In
+    values:
+    - c5.4xlarge
+    - c5a.4xlarge
+    - c5a.8xlarge
+    - c5ad.4xlarge
+    - c5ad.8xlarge
+    - c5d.4xlarge
+    - c5n.4xlarge
+    - c6a.4xlarge
+    - c6a.8xlarge
+    - c6i.4xlarge
+    - c6i.8xlarge
+    - c6id.4xlarge
+    - c6id.8xlarge
+    - c6in.4xlarge
+    - c6in.8xlarge
+    - c7a.4xlarge
+    - c7a.8xlarge
+    - c7i-flex.4xlarge
+    - c7i-flex.8xlarge
+    - c7i.4xlarge
+    - c7i.8xlarge
+    - m5.4xlarge
+    - m5.8xlarge
+    - m5a.4xlarge
+    - m5a.8xlarge
+    - m5ad.4xlarge
+    - m5ad.8xlarge
+    - m5d.4xlarge
+    - m5d.8xlarge
+    - m5dn.4xlarge
+    - m5dn.8xlarge
+    - m5n.4xlarge
+    - m5n.8xlarge
+    - m6a.4xlarge
+    - m6a.8xlarge
+    - m6i.4xlarge
+    - m6i.8xlarge
+    - m6id.4xlarge
+    - m6id.8xlarge
+    - m6idn.4xlarge
+    - m6idn.8xlarge
+    - m6in.4xlarge
+    - m6in.8xlarge
+    - m7a.4xlarge
+    - m7a.8xlarge
+    - m7i-flex.4xlarge
+    - m7i-flex.8xlarge
+    - m7i.4xlarge
+    - m7i.8xlarge
+  resources:
+    requests:
+      cpu: 10956m
+      memory: 409Mi
+      pods: "17"

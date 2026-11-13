@@ -221,6 +221,17 @@ module "eks" {
     #   }
   }
 
+  node_security_group_additional_rules = {
+    ingress_cluster_cert_manager_webhook = {
+      description                   = "Cluster API to cert-manager webhook"
+      protocol                      = "tcp"
+      from_port                     = 10260
+      to_port                       = 10260
+      type                          = "ingress"
+      source_cluster_security_group = true
+    }
+  }
+
   node_security_group_tags = {
     "karpenter.sh/discovery" = local.name
   }

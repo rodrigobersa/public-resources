@@ -1,0 +1,21 @@
+
+apiVersion: v1
+kind: PodTemplate
+metadata:
+  name: web-buffer-template
+  namespace: default
+template:
+  spec:
+    containers:
+      - name: placeholder
+        image: public.ecr.aws/eks-distro/kubernetes/pause:3.2
+        resources:
+          requests:
+            cpu: "2"
+            memory: "4Gi"
+    nodeSelector:
+      karpenter.sh/capacity-type: on-demand
+    tolerations:
+      - key: workload-type
+        value: web
+        effect: NoSchedule
